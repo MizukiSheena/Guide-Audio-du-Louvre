@@ -1,0 +1,687 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>卢浮宫艺术品音频导览 | Guide Audio du Louvre</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Noto+Serif+SC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background-color: #f8f7f3;
+        }
+        .navbar {
+            background-color: #1a1a1a !important;
+            padding: 1rem 0;
+        }
+        .navbar-brand {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.5rem;
+        }
+        .artwork-card {
+            margin-bottom: 30px;
+            border-radius: 8px;
+            background-color: white;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+            transition: all 0.3s ease;
+            overflow: hidden;
+        }
+        .artwork-card:hover {
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+            transform: translateY(-2px);
+        }        .card-body {
+            padding: 1.5rem;
+        }
+        .location-badge {
+            display: inline-block;
+            padding: 0.25rem 0.5rem;
+            background-color: #e9ecef;
+            border-radius: 3px;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+        .audio-player {
+            width: 100%;
+            margin: 15px 0;
+            border-radius: 3px;
+        }
+        .locked-content {
+            filter: blur(5px);
+            pointer-events: none;
+        }
+        .modal-content {
+            border-radius: 0;
+        }
+        .fr {
+            font-family: 'Playfair Display', serif;
+            color: #666;
+        }
+        .language-switch {
+            position: fixed;
+            top: 1rem;
+            right: 1rem;
+            z-index: 1030;
+        }
+        .btn-outline-light {
+            border-width: 2px;
+        }    </style>
+</head>
+<body>
+    <nav class="navbar navbar-dark">
+        <div class="container">
+            <span class="navbar-brand">
+                卢浮宫艺术品音频导览
+                <small class="d-block fr">Guide Audio du Louvre</small>
+            </span>
+        </div>
+    </nav>
+
+    <div class="language-switch">
+        <button class="btn btn-sm btn-outline-dark" onclick="toggleLanguage()">FR/中文</button>
+    </div>    <div class="container mt-5">
+        <div class="row mb-5">
+            <div class="col-md-8 mx-auto text-center">
+                <h2 class="mb-3">探索卢浮宫艺术瑰宝</h2>
+                <p class="fr h4 mb-4">Explorez les Trésors du Louvre</p>
+                <p class="text-muted">带上耳机，聆听艺术细语</p>
+                <p class="fr text-muted">Écoutez les Secrets de l'Art</p>
+            </div>
+        </div>
+
+        <!-- 检索区域 -->
+        <div class="row mb-4">
+            <div class="col-md-8 mx-auto">
+                <div class="card">
+                    <div class="card-body">
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <select class="form-select" id="pavilion-filter">
+                                    <option value="">所有馆区 | Tous les pavillons</option>
+                                    <option value="denon">德农馆 | Denon</option>
+                                    <option value="richeliu">黎塞留馆 | Richelieu</option>
+                                    <option value="sully">苏利馆 | Sully</option>
+                                </select>
+                            </div>
+                            <div class="col-md-4">
+                                <select class="form-select" id="floor-filter">
+                                    <option value="">所有楼层 | Tous les étages</option>
+                                    <option value="0">0层 | RDC</option>
+                                    <option value="1">1层 | 1er étage</option>
+                                    <option value="2">2层 | 2ème étage</option>
+                                </select>
+                            </div>                            <div class="col-md-4">
+                                <input type="text" class="form-control" id="room-filter" 
+                                    placeholder="展厅号 | N° de salle">
+                            </div>
+                        </div>
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <input type="text" class="form-control" id="search-input" 
+                                    placeholder="搜索艺术品名称 | Rechercher une œuvre">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="artwork-container" class="row">
+            <!-- 艺术品卡片将通过JavaScript动态添加 -->
+        </div>
+    </div>
+
+    <!-- 验证模态框 -->
+    <div class="modal fade" id="payment-modal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">访问验证 | Vérification d'accès</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <p>请输入访问码开启您的艺术之旅</p>
+                    <p class="fr">Entrez votre code d'accès pour commencer votre voyage artistique</p>
+                    <div class="mt-4">
+                        <input type="text" class="form-control form-control-lg" id="access-code" placeholder="请输入访问码 | Code d'accès">
+                    </div>
+                    <div class="mt-3 text-muted small">
+                        <p>没有访问码？联系我们获取：</p>
+                        <p class="fr">Pas de code ? Contactez-nous :</p>
+                        <p> 水木臻@小红书，angeljosie@163.com </p>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-primary" onclick="verifyAccessCode()">验证</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>    <script>
+        // 艺术品数据
+        const artworks = [
+            // Denon 0层
+            {
+                title: '抗争的奴隶与垂死的奴隶',
+                titleFr: 'L\'Esclave rebelle et l\'Esclave mourant',
+                location: 'Denon馆 0层 403号展厅',
+                locationFr: 'Pavillon Denon, RDC, Salle 403',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon0/抗争的奴隶与垂死的奴隶-Denon0-403.mp3',
+                pavilion: 'denon',
+                floor: '0',
+                room: '403'
+            },
+            {
+                title: '爱神吻醒普西莎',
+                titleFr: 'L\'Amour réveillant Psyché',
+                location: 'Denon馆 0层 403号展厅',
+                locationFr: 'Pavillon Denon, RDC, Salle 403',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon0/爱神吻醒普西莎-Denon0-403.mp3',
+                pavilion: 'denon',
+                floor: '0',
+                room: '403'
+            },
+            // Denon 1层
+            {
+                title: '圣母之死',
+                titleFr: 'La Mort de la Vierge',
+                location: 'Denon馆 1层 11号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 011',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/1-圣母之死-Denon1-011.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '011'
+            },
+            {
+                title: '萨达纳帕拉之死',
+                titleFr: 'La Mort de Sardanapale',
+                location: 'Denon馆 1层 77号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 077',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/2-萨达纳帕拉之死-Denon1-077.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '077'
+            },
+            {
+                title: '梅杜莎之筏',
+                titleFr: 'Le Radeau de la Méduse',
+                location: 'Denon馆 1层 700号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 700',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/3-梅杜莎之筏-Denon1-700.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '700'
+            },
+            {
+                title: '自由引导人民',
+                titleFr: 'La Liberté guidant le peuple',
+                location: 'Denon馆 1层 700号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 700',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/4-自由引导人民-Denon1-700.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '700'
+            },
+            {
+                title: '弗朗切斯卡与保罗的幽灵',
+                titleFr: 'Les Ombres de Francesca et Paolo',
+                location: 'Denon馆 1层 700号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 700',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/5-弗朗切斯卡与保罗的幽灵-Denon1-700.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '700'
+            },
+            {
+                title: '正在冲锋的皇家卫队骑兵军官',
+                titleFr: 'Officier de chasseurs à cheval chargeant',
+                location: 'Denon馆 1层 700号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 700',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/6-正在冲锋的皇家卫队骑兵军官-Denon1-700.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '700'
+            },
+            {
+                title: '拿破仑加冕大典',
+                titleFr: 'Le Sacre de Napoléon',
+                location: 'Denon馆 1层 702号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 702',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/7-拿破仑加冕大典-Denon1-702.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '702'
+            },
+            {
+                title: '荷拉斯兄弟之誓',
+                titleFr: 'Le Serment des Horaces',
+                location: 'Denon馆 1层 702号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 702',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/8-荷拉斯兄弟之誓-Denon1-702.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '702'
+            },
+            {
+                title: '萨宾妇女',
+                titleFr: 'L\'Enlèvement des Sabines',
+                location: 'Denon馆 1层 702号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 702',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/9-萨宾妇女-Denon1-702.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '702'
+            },
+            {
+                title: '雷加米尔夫人像',
+                titleFr: 'Portrait de Madame Récamier',
+                location: 'Denon馆 1层 702号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 702',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/10-雷加米尔夫人像-Denon1-702.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '702'
+            },
+            {
+                title: '胜利女神',
+                titleFr: 'La Victoire',
+                location: 'Denon馆 1层 703号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 703',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/11-胜利女神-Denon1-703.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '703'
+            },
+            {
+                title: '阿波罗长廊穹顶装饰',
+                titleFr: 'Décor de la voûte de la Galerie d\'Apollon',
+                location: 'Denon馆 1层 705号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 705',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/12-阿波罗长廊穹顶装饰-Denon1-705.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '705'
+            },
+            {
+                title: '维纳斯与美惠三女神向年轻女子赠送礼物',
+                titleFr: 'Vénus et les Trois Grâces offrant des présents à une jeune fille',
+                location: 'Denon馆 1层 706号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 706',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/13-维纳斯与美惠三女神向年轻女子赠送礼物-Denon1-706.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '706'
+            },
+            {
+                title: '方形沙龙',
+                titleFr: 'Le Salon Carré',
+                location: 'Denon馆 1层 708号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 708',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/14-方形沙龙-Denon1-708.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '708'
+            },
+            {
+                title: '大画廊',
+                titleFr: 'La Grande Galerie',
+                location: 'Denon馆 1层 710号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 710',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/15-大画廊-Denon1-710.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '710'
+            },
+            {
+                title: '圣母怜子图',
+                titleFr: 'La Vierge au coussin vert',
+                location: 'Denon馆 1层 710号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 710',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/16-圣母怜子图-Denon1-710.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '710'
+            },
+            {
+                title: '绿垫圣母子',
+                titleFr: 'La Vierge à l\'Enfant',
+                location: 'Denon馆 1层 710号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 710',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/17-绿垫圣母子-Denon1-710.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '710'
+            },
+            {
+                title: '蒙娜丽莎',
+                titleFr: 'La Joconde',
+                location: 'Denon馆 1层 711号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 711',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/18-蒙娜丽莎-Denon1-711.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '711'
+            },
+            {
+                title: '加纳的婚礼',
+                titleFr: 'Les Noces de Cana',
+                location: 'Denon馆 1层 711号展厅',
+                locationFr: 'Pavillon Denon, 1er étage, Salle 711',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/denon1/19-加纳的婚礼-Denon1-711.mp3',
+                pavilion: 'denon',
+                floor: '1',
+                room: '711'
+            },
+            
+            // Richelieu 0层
+            {
+                title: '雄狮与蛇',
+                titleFr: 'Lion et Serpent',
+                location: 'Richelieu馆 0层 105号展厅',
+                locationFr: 'Pavillon Richelieu, RDC, Salle 105',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/richeliu0/0-雄狮与蛇-Richelieu0-105.mp3',
+                pavilion: 'richeliu',
+                floor: '0',
+                room: '105'
+            },
+            {
+                title: '汉谟拉比法典',
+                titleFr: 'Code de Hammurabi',
+                location: 'Richelieu馆 0层 227号展厅',
+                locationFr: 'Pavillon Richelieu, RDC, Salle 227',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/richeliu0/1-汉谟拉比法典-Richelieu0-227.mp3',
+                pavilion: 'richeliu',
+                floor: '0',
+                room: '227'
+            },
+            {
+                title: '科撒巴德庭守护神',
+                titleFr: 'Génie protecteur de la cour de Khorsabad',
+                location: 'Richelieu馆 0层 229号展厅',
+                locationFr: 'Pavillon Richelieu, RDC, Salle 229',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/richeliu0/2-科撒巴德庭守护神-Richelieu0-229.mp3',
+                pavilion: 'richeliu',
+                floor: '0',
+                room: '229'
+            },
+            {
+                title: '埃比-伊尔总督雕像',
+                titleFr: 'Statue de Gudea, prince de Lagash',
+                location: 'Richelieu馆 0层 234号展厅',
+                locationFr: 'Pavillon Richelieu, RDC, Salle 234',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/richeliu0/3-埃比-伊尔总督雕像-Richelieu0-234.mp3',
+                pavilion: 'richeliu',
+                floor: '0',
+                room: '234'
+            },
+
+            // Richelieu 0层
+            {
+                title: "克罗顿的米隆",  
+                titleFr: "Milon de Crotone",
+                location: "Richelieu馆 1层 105展厅",
+                locationFr: "Pavillon Richelieu, 1er étage, Salle 105",
+                audio: "../Paris/卢浮宫/卢浮宫藏品/audio/richeliu1/1-克罗顿的米隆-Richelieu1-105.mp3",
+                pavilion: "richeliu",
+                floor: "1",
+                room: "105"
+            },
+            {
+                title: "国务大臣专用小套房",
+                titleFr: "Le Petit Cabinet des Ministres",
+                location: "Richelieu馆 1层",
+                locationFr: "Pavillon Richelieu, 1er étage",
+                audio: "../Paris/卢浮宫/卢浮宫藏品/audio/richeliu1/2-国务大臣专用小套房-Richelieu1.mp3",
+                pavilion: "richeliu",
+                floor: "1",
+                room: ""
+            },
+            {
+                title: "大客厅与戏剧沙龙",
+                titleFr: "Le Grand Salon et le Salon de Théâtre",
+                location: "Richelieu馆 1层 544展厅",
+                locationFr: "Pavillon Richelieu, 1er étage, Salle 544",
+                audio: "../Paris/卢浮宫/卢浮宫藏品/audio/richeliu1/3-大客厅与戏剧沙龙-Richelieu1-544.mp3",
+                pavilion: "richeliu",
+                floor: "1",
+                room: "544"
+            },
+            {
+                title: "皮埃罗",
+                titleFr: "Pierrot",
+                location: "Richelieu馆 1层 035展厅",
+                locationFr: "Pavillon Richelieu, 1er étage, Salle 035",
+                audio: "../Paris/卢浮宫/卢浮宫藏品/audio/richeliu1/4-皮埃罗-Richelieu1-035.mp3",
+                pavilion: "richeliu",
+                floor: "1",
+                room: "035"
+            },
+
+            // Sully 0层
+            {
+                title: '贝斯神',
+                titleFr: 'Le dieu Bès',
+                location: 'Sully馆 0层 317号展厅',
+                locationFr: 'Pavillon Sully, RDC, Salle 317',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/sully0/1-贝斯神-Sully0-317.mp3',
+                pavilion: 'sully',
+                floor: '0',
+                room: '317'
+            },
+            {
+                title: '乌恩素墓中的壁画',
+                titleFr: 'Peintures de la tombe de Ounsou',
+                location: 'Sully馆 0层 333号展厅',
+                locationFr: 'Pavillon Sully, RDC, Salle 333',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/sully0/2-乌恩素墓中的壁画-Sully0-333.mp3',
+                pavilion: 'sully',
+                floor: '0',
+                room: '333'
+            },
+            {
+                title: '盘腿而坐的书吏雕像',
+                titleFr: 'Statue de scribe accroupi',
+                location: 'Sully馆 0层 335号展厅',
+                locationFr: 'Pavillon Sully, RDC, Salle 335',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/sully0/3-盘腿而坐的书吏雕像-Sully0-335.mp3',
+                pavilion: 'sully',
+                floor: '0',
+                room: '335'
+            },
+            {
+                title: '古埃及船只模型',
+                titleFr: 'Modèle de bateau égyptien',
+                location: 'Sully馆 0层 336号展厅',
+                locationFr: 'Pavillon Sully, RDC, Salle 336',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/sully0/4-古埃及船只模型-Sully0-336.mp3',
+                pavilion: 'sully',
+                floor: '0',
+                room: '336'
+            },
+            {
+                title: '赫尔墨斯整理鞋履',
+                titleFr: 'Hermès attachant sa sandale',
+                location: 'Sully馆 0层 344号展厅',
+                locationFr: 'Pavillon Sully, RDC, Salle 344',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/sully0/5-赫尔墨斯整理鞋履-Sully0-344.mp3',
+                pavilion: 'sully',
+                floor: '0',
+                room: '344'
+            },
+            {
+                title: '米洛的维纳斯',
+                titleFr: 'La Vénus de Milo',
+                location: 'Sully馆 0层 346号展厅',
+                locationFr: 'Pavillon Sully, RDC, Salle 346',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/sully0/6-米洛的维纳斯-Sully0-346.mp3',
+                pavilion: 'sully',
+                floor: '0',
+                room: '346'
+            },
+            {
+                title: '女像柱厅',
+                titleFr: 'La Salle des Cariatides',
+                location: 'Sully馆 0层 348号展厅',
+                locationFr: 'Pavillon Sully, RDC, Salle 348',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/sully0/7-女像柱厅-Sully0-348.mp3',
+                pavilion: 'sully',
+                floor: '0',
+                room: '348'
+            },
+
+            // Sully 1层
+            {
+                title: '守护神斯芬克斯',
+                titleFr: 'Sphinx gardien',
+                location: 'Sully馆 1层 348号展厅',
+                locationFr: 'Pavillon Sully, 1er étage, Salle 348',
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/sully1/守护神斯芬克斯-Sully1-348.mp3',
+                pavilion: 'sully', 
+                floor: '1',
+                room: '348'
+            },
+            
+            // Sully 2层
+            {
+                title: '黑人妇女肖像',
+                titleFr: 'Portrait d\'une femme noire',
+                location: 'Sully馆 2层 935号展厅',
+                locationFr: 'Pavillon Sully, 2ème étage, Salle 935', 
+                audio: '../Paris/卢浮宫/卢浮宫藏品/audio/sully2/黑人妇女肖像-Sully2-935.mp3',
+                pavilion: 'sully',
+                floor: '2',
+                room: '935'
+            }
+
+        ];let isUnlocked = false;
+        let currentLanguage = 'zh'; // 默认中文
+
+        // 切换语言
+        function toggleLanguage() {
+            currentLanguage = currentLanguage === 'zh' ? 'fr' : 'zh';
+            createArtworkCards(); // 重新生成卡片
+        }
+
+        // 检查是否已解锁
+        function checkUnlock() {
+            const savedAccessCode = localStorage.getItem('accessCode');
+            if (savedAccessCode === 'louvre2025') { // 这里设置您的访问码
+                isUnlocked = true;
+                document.querySelectorAll('.locked-content').forEach(el => {
+                    el.classList.remove('locked-content');
+                });
+            }
+        }
+
+        // 验证访问码
+        function verifyAccessCode() {
+            const accessCode = document.getElementById('access-code').value;
+            if (accessCode === 'louvre2025') { // 这里设置您的访问码
+                localStorage.setItem('accessCode', accessCode);
+                isUnlocked = true;
+                document.querySelectorAll('.locked-content').forEach(el => {
+                    el.classList.remove('locked-content');
+                });
+                bootstrap.Modal.getInstance(document.getElementById('payment-modal')).hide();
+            } else {
+                alert(currentLanguage === 'zh' ? '访问码错误' : 'Code d\'accès incorrect');
+            }
+        }        // 筛选艺术品
+        function filterArtworks() {
+            const pavilion = document.getElementById('pavilion-filter').value.toLowerCase();
+            const floor = document.getElementById('floor-filter').value;
+            const room = document.getElementById('room-filter').value;
+            const searchInput = document.getElementById('search-input')?.value.toLowerCase() || '';
+
+            return artworks.filter(artwork => {
+                if (pavilion && !artwork.pavilion.includes(pavilion)) return false;
+                if (floor && artwork.floor !== floor) return false;
+                if (room && !artwork.room.includes(room)) return false;
+                if (searchInput) {
+                    const searchText = `${artwork.title} ${artwork.titleFr} ${artwork.location} ${artwork.locationFr}`.toLowerCase();
+                    if (!searchText.includes(searchInput)) return false;
+                }
+                return true;
+            });
+        }
+
+        // 生成艺术品卡片
+        function createArtworkCards() {
+            const container = document.getElementById('artwork-container');
+            container.innerHTML = ''; // 清空现有卡片
+            
+            const filteredArtworks = filterArtworks();
+            
+            if (filteredArtworks.length === 0) {
+                container.innerHTML = `
+                    <div class="col-12 text-center mt-4">
+                        <p class="text-muted">
+                            ${currentLanguage === 'zh' ? '没有找到匹配的艺术品' : 'Aucune œuvre d\'art trouvée'}
+                        </p>
+                    </div>
+                `;
+                return;
+            }
+
+            filteredArtworks.forEach(artwork => {
+                const card = document.createElement('div');
+                card.className = 'col-md-6 col-lg-4';                card.innerHTML = `
+                    <div class="artwork-card">
+                        <div class="card-body p-4">
+                            <h5 class="card-title">
+                                ${currentLanguage === 'zh' ? artwork.title : artwork.titleFr}
+                            </h5>
+                            <div class="location-badge">
+                                ${currentLanguage === 'zh' ? artwork.location : artwork.locationFr}
+                            </div>
+                            <div class="${isUnlocked ? '' : 'locked-content'}">
+                                <audio controls class="audio-player">
+                                    <source src="${artwork.audio}" type="audio/mpeg">
+                                    ${currentLanguage === 'zh' ? '您的浏览器不支持音频播放' : 'Votre navigateur ne prend pas en charge la lecture audio'}
+                                </audio>
+                            </div>
+                            ${!isUnlocked ? `<button class="btn btn-dark w-100 mt-3" onclick="showPaymentModal()">
+                                ${currentLanguage === 'zh' ? '解锁音频导览' : 'Déverrouiller le guide audio'}
+                            </button>` : ''}
+                        </div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        // 显示支付模态框
+        function showPaymentModal() {
+            const modal = new bootstrap.Modal(document.getElementById('payment-modal'));
+            modal.show();
+        }        // 添加筛选器事件监听
+        function setupFilterListeners() {
+            document.getElementById('pavilion-filter').addEventListener('change', createArtworkCards);
+            document.getElementById('floor-filter').addEventListener('change', createArtworkCards);
+            document.getElementById('room-filter').addEventListener('input', createArtworkCards);
+            document.getElementById('search-input').addEventListener('input', debounce(createArtworkCards, 300));
+        }
+
+        // 防抖函数
+        function debounce(func, wait) {
+            let timeout;
+            return function executedFunction(...args) {
+                const later = () => {
+                    clearTimeout(timeout);
+                    func(...args);
+                };
+                clearTimeout(timeout);
+                timeout = setTimeout(later, wait);
+            }
+        }
+
+        // 页面加载时检查解锁状态并创建卡片
+        window.onload = function() {
+            checkUnlock();
+            createArtworkCards();
+            setupFilterListeners();
+        };
+    </script>
+</body>
+</html>
