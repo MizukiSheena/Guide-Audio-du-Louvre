@@ -3,6 +3,7 @@
 语音讲解卢浮宫重要藏品｜Explorez les Trésors du Louvre, Écoutez les Secrets de l'Art
 
 > 一个极简的静态网页，组织并呈现卢浮宫重点藏品的语音讲解。配合页面内的作品清单与音频目录，您可以在浏览器中直接播放讲解音频。
+> 体验地址：https://mizukisheena.github.io/Guide-Audio-du-Louvre/
 
 ## 功能概述
 - 浏览器直接播放音频文件（无需后端）
